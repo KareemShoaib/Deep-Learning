@@ -1,0 +1,3 @@
+dropout rate
+learnig rate
+learnig rate scheduler , what are the values
