@@ -85,14 +85,14 @@ def display_sample_images(X, y, label_mapping, num_samples=5):
 
 # Step 3: Training Function with L2 Regularization
 def training(X_train, y_train, X_test, y_test, 
-             batch_size=32, num_layers=3, dropout_rate=0.5, 
+             batch_size=32, num_layers=2, dropout_rate=0.5, 
              optimizer_name='adam', weight_decay=0.01, 
              initial_lr=0.001, lr_scheduler=None, epochs=20):
     """
     Train a CNN model with specified hyperparameters and L2 regularization.
     """
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3),
+    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 1),
                      kernel_regularizer=l2(weight_decay)))
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -103,7 +103,7 @@ def training(X_train, y_train, X_test, y_test,
     model.add(Flatten())
     model.add(Dense(128, activation='relu', kernel_regularizer=l2(weight_decay)))
     model.add(Dropout(dropout_rate))
-    model.add(Dense(y_train.max() + 1, activation='softmax', kernel_regularizer=l2(weight_decay)))
+    model.add(Dense(num_classes, activation='softmax', kernel_regularizer=l2(weight_decay)))
 
     if optimizer_name == 'adam':
         optimizer = Adam(learning_rate=initial_lr)
@@ -113,7 +113,7 @@ def training(X_train, y_train, X_test, y_test,
         optimizer = RMSprop(learning_rate=initial_lr)
     else:
         raise ValueError("Invalid optimizer. Choose 'adam', 'sgd', or 'rmsprop'.")
-
+    
     model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
     callbacks = []

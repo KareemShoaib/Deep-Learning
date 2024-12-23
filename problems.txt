@@ -1,3 +1,7 @@
 dropout rate
 learnig rate
 learnig rate scheduler , what are the values
+L2 regularization
+understand all optimizers
+understand loss func 
+understand validation
