@@ -19,3 +19,11 @@ Combines the benefits of momentum and adaptive learning rates.
 
 - maintains a moving average of the squared gradients, giving more weight to recent gradients.
 - avoids rapid learning rate decay.
+
+
+## Loss function vs Cost function
+
+Measures True - Prediction with a mathematical equation.
+
+- loss function: Measure model error on a single instance
+- cost function: Measure model error on a group of data
