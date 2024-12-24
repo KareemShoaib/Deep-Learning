@@ -1,6 +1,5 @@
 ## Problems
 
-- L2 regularization
 - understand cross validation
 
 
@@ -11,3 +10,4 @@
 - understand loss func 
 - learnig rate
 - dropout rate
+- L2 regularization

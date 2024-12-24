@@ -55,6 +55,14 @@ Cycles the learning rate between a lower and upper bound by using a step size.
 **(More can be added)**
 
 
+## L2 Regularization
+
+- penalizes high value coefficients. (Adds a term)
+- helps prevent overfitting
+- the argument it takes makes the gradient smaller by multiplying it with sum of all weights sqaured
+
+![L2 equation](./explain_imgs/l2.png)
+
 ## Definitions
 
 - Learning rate: number that sets how quickly a model converges.
