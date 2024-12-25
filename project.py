@@ -133,7 +133,7 @@ def training(X_train, y_train, X_test, y_test,
     model.save('leaf_classification_cnn_model.keras')
     print("\nModel saved as 'leaf_classification_cnn_model.keras'")
 
-    return history, model
+    return history, model, optimizer_name
 
 # Step 4: Evaluation Function
 def evaluation(model_path, X_train, y_train, X_test, y_test):
@@ -165,12 +165,12 @@ def evaluation(model_path, X_train, y_train, X_test, y_test):
     print(classification_report(y_test, y_pred_classes))
 
 # Step 5: Plot Training History
-def plot_history(history, title=''):
+def plot_history(history, optimizer_name, title=''):
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
     plt.plot(history.history['accuracy'], label='Train Accuracy')
     plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-    plt.title('Accuracy ' + title)
+    plt.title(f'Accuracy ({optimizer_name}) {title}')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
@@ -178,7 +178,7 @@ def plot_history(history, title=''):
     plt.subplot(1, 2, 2)
     plt.plot(history.history['loss'], label='Train Loss')
     plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.title('Loss ' + title)
+    plt.title(f'Loss ({optimizer_name}) {title}')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     display_sample_images(X_train, y_train, label_mapping, num_samples=5)
 
     # Train the model with L2 Regularization
-    history, model = training(
+    history, model, optimizer_name = training(
         X_train, y_train, X_test, y_test,
         batch_size=32, num_layers=3, dropout_rate=0.5, 
         optimizer_name='adam', weight_decay=0.01, 
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     )
 
     # Plot training history
-    plot_history(history, title='(Adam with L2 Regularization)')
+    plot_history(history, optimizer_name, title='(with L2 Regularization)')
 
     # Evaluate the model
     evaluation('leaf_classification_cnn_model.keras', X_train, y_train, X_test, y_test)
