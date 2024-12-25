@@ -1,6 +1,10 @@
 ## Problems
 
 - understand cross validation
+- compare optimizers 
+- local learning rate vs global learning rate
+- use L1
+- L2 understanding
 
 
 ## Done

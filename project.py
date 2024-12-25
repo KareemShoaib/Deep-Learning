@@ -46,7 +46,7 @@ def load_and_preprocess_data():
             if img is not None:
                 img = cv2.resize(img, target_size)
                 images.append(img)
-        return np.array(images)
+        return np.array(images)  # Shape will be (num_samples, 128, 128, 3)
 
     image_folder = 'images'  # Path to image folder
     train_images = load_images(image_folder, train_df['id'].astype(str) + '.jpg')
@@ -92,7 +92,7 @@ def training(X_train, y_train, X_test, y_test,
     Train a CNN model with specified hyperparameters and L2 regularization.
     """
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 1),
+    model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3),
                      kernel_regularizer=l2(weight_decay)))
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -103,7 +103,7 @@ def training(X_train, y_train, X_test, y_test,
     model.add(Flatten())
     model.add(Dense(128, activation='relu', kernel_regularizer=l2(weight_decay)))
     model.add(Dropout(dropout_rate))
-    model.add(Dense(num_classes, activation='softmax', kernel_regularizer=l2(weight_decay)))
+    model.add(Dense(y_train.max() + 1, activation='softmax', kernel_regularizer=l2(weight_decay)))
 
     if optimizer_name == 'adam':
         optimizer = Adam(learning_rate=initial_lr)
@@ -133,7 +133,7 @@ def training(X_train, y_train, X_test, y_test,
     model.save('leaf_classification_cnn_model.keras')
     print("\nModel saved as 'leaf_classification_cnn_model.keras'")
 
-    return history, model
+    return history, model, optimizer_name
 
 # Step 4: Evaluation Function
 def evaluation(model_path, X_train, y_train, X_test, y_test):
@@ -165,12 +165,12 @@ def evaluation(model_path, X_train, y_train, X_test, y_test):
     print(classification_report(y_test, y_pred_classes))
 
 # Step 5: Plot Training History
-def plot_history(history, title=''):
+def plot_history(history, optimizer_name, title=''):
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
     plt.plot(history.history['accuracy'], label='Train Accuracy')
     plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-    plt.title('Accuracy ' + title)
+    plt.title(f'Accuracy ({optimizer_name}) {title}')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
@@ -178,7 +178,7 @@ def plot_history(history, title=''):
     plt.subplot(1, 2, 2)
     plt.plot(history.history['loss'], label='Train Loss')
     plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.title('Loss ' + title)
+    plt.title(f'Loss ({optimizer_name}) {title}')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
@@ -186,7 +186,52 @@ def plot_history(history, title=''):
     plt.tight_layout()
     plt.show()
 
-# Step 6: Run the Full Pipeline
+# Step 6: Classify New Images
+def classify_images(model_path, image_folder, image_names, label_mapping):
+    """
+    Classify a set of images using the trained model.
+
+    Parameters:
+    - model_path: Path to the saved model.
+    - image_folder: Folder containing the images to classify.
+    - image_names: List of image filenames.
+    - label_mapping: Dictionary mapping integer labels to species names.
+    """
+    model = tf.keras.models.load_model(model_path)
+    print(f"\nModel loaded from {model_path}")
+
+    def preprocess_image(img_path, target_size=(128, 128)):
+        img = cv2.imread(img_path)
+        if img is not None:
+            img = cv2.resize(img, target_size)
+            img = img / 255.0  # Normalize
+            return img
+        return None
+
+    images = []
+    valid_image_names = []
+    for name in image_names:
+        img_path = os.path.join(image_folder, name)
+        img = preprocess_image(img_path)
+        if img is not None:
+            images.append(img)
+            valid_image_names.append(name)  # Track only valid images
+        else:
+            print(f"Warning: Could not load image {name}. Skipping.")
+
+    if not images:
+        print("No valid images to classify.")
+        return
+
+    images = np.array(images)
+    predictions = model.predict(images)
+    predicted_classes = np.argmax(predictions, axis=1)
+
+    for i, name in enumerate(valid_image_names):
+        print(f"Image: {name} -> Predicted Label: {label_mapping[predicted_classes[i]]}")
+
+
+# Step 7: Run the Full Pipeline
 if __name__ == "__main__":
     # Load and preprocess the data
     X_train, X_test, y_train, y_test, num_classes, label_mapping = load_and_preprocess_data()
@@ -196,7 +241,7 @@ if __name__ == "__main__":
     display_sample_images(X_train, y_train, label_mapping, num_samples=5)
 
     # Train the model with L2 Regularization
-    history, model = training(
+    history, model, optimizer_name = training(
         X_train, y_train, X_test, y_test,
         batch_size=32, num_layers=3, dropout_rate=0.5, 
         optimizer_name='adam', weight_decay=0.01, 
@@ -204,7 +249,13 @@ if __name__ == "__main__":
     )
 
     # Plot training history
-    plot_history(history, title='(Adam with L2 Regularization)')
+    plot_history(history, optimizer_name, title='(with L2 Regularization)')
 
     # Evaluate the model
     evaluation('leaf_classification_cnn_model.keras', X_train, y_train, X_test, y_test)
+
+    # Classify new images
+    print("\nClassifying new images...")
+    new_image_folder = 'test_images'  # Replace with your test image folder
+    new_image_names = ['1.jpg', '2.jpg', '3.jpg','40.jpg']  # Replace with your test image filenames
+    classify_images('leaf_classification_cnn_model.keras', new_image_folder, new_image_names, label_mapping)
