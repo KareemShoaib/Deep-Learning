@@ -13,12 +13,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 
-# Step 1: Load and Preprocess the Dataset
 def load_and_preprocess_data():
-    # Load CSV file
     train_df = pd.read_csv('train.csv')
 
-    # Handle Missing Values
     numeric_columns = train_df.select_dtypes(include=['float64', 'int64']).columns
     train_df[numeric_columns] = train_df[numeric_columns].fillna(train_df[numeric_columns].mean())
 
@@ -26,10 +23,8 @@ def load_and_preprocess_data():
     for col in categorical_columns:
         train_df[col].fillna(train_df[col].mode()[0], inplace=True)
 
-    # Remove Duplicates
     train_df.drop_duplicates(inplace=True)
 
-    # Encode Labels
     label_encoder = LabelEncoder()
     train_df['species'] = label_encoder.fit_transform(train_df['species'])
     label_mapping = dict(zip(label_encoder.transform(label_encoder.classes_), label_encoder.classes_))
@@ -37,7 +32,6 @@ def load_and_preprocess_data():
     print(train_df)
     print("\nLabel Mapping:", label_mapping)
 
-    # Load and Preprocess Images
     def load_images(image_folder, image_names, target_size=(128, 128)):
         images = []
         for name in image_names:
@@ -46,51 +40,45 @@ def load_and_preprocess_data():
             if img is not None:
                 img = cv2.resize(img, target_size)
                 images.append(img)
-        return np.array(images)  # Shape will be (num_samples, 128, 128, 3)
+        return np.array(images)
 
-    image_folder = 'images'  # Path to image folder
+    image_folder = 'images'
     train_images = load_images(image_folder, train_df['id'].astype(str) + '.jpg')
-    train_images = train_images / 255.0  # Normalize to [0, 1]
+    train_images = train_images / 255.0
 
-    # Drop 'id' column as it's no longer needed
     train_df.drop('id', axis=1, inplace=True)
 
-    # Split Dataset with Stratify
     X_train, X_test, y_train, y_test = train_test_split(
         train_images, train_df['species'].values, test_size=0.2, stratify=train_df['species'].values, random_state=42
     )
 
-    num_classes = len(np.unique(y_train))  # Total number of classes
+    num_classes = len(np.unique(y_train))
 
     return X_train, X_test, y_train, y_test, num_classes, label_mapping
 
-# Step 2: Display Sample Images
-def display_sample_images(X, y, label_mapping, num_samples=5):
-    """
-    Displays sample images along with their labels.
-
-    Parameters:
-    - X: Array of image data (shape: [num_images, height, width, channels])
-    - y: Array of labels (integer encoded)
-    - label_mapping: Dictionary mapping integer labels to species names
-    - num_samples: Number of images to display
-    """
+def display_sample_images(X_train, y_train, label_mapping, num_samples=5):
     plt.figure(figsize=(15, 5))
     for i in range(num_samples):
         plt.subplot(1, num_samples, i + 1)
-        plt.imshow(X[i])
-        plt.title(f"Label: {label_mapping[y[i]]}")
+        plt.imshow(X_train[i])
+        plt.title(f"Label: {label_mapping[y_train[i]]}")
         plt.axis('off')
     plt.show()
 
-# Step 3: Training Function with L2 Regularization
-def training(X_train, y_train, X_test, y_test, 
-             batch_size=32, num_layers=2, dropout_rate=0.5, 
-             optimizer_name='adam', weight_decay=0.01, 
-             initial_lr=0.001, lr_scheduler=None, epochs=20):
-    """
-    Train a CNN model with specified hyperparameters and L2 regularization.
-    """
+def training(
+        X_train,
+        y_train,
+        X_test,
+        y_test, 
+        batch_size=32,
+        num_layers=2,
+        dropout_rate=0.5, 
+        optimizer_name='adam',
+        weight_decay=0.01, 
+        initial_lr=0.001,
+        lr_scheduler=None,
+        epochs=20
+    ):
     model = Sequential()
     model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3),
                      kernel_regularizer=l2(weight_decay)))
@@ -129,13 +117,11 @@ def training(X_train, y_train, X_test, y_test,
         verbose=1
     )
 
-    # Save the trained model using the recommended Keras format
     model.save('leaf_classification_cnn_model.keras')
     print("\nModel saved as 'leaf_classification_cnn_model.keras'")
 
     return history, model, optimizer_name
 
-# Step 4: Evaluation Function
 def evaluation(model_path, X_train, y_train, X_test, y_test):
     """
     Load the trained model and evaluate its performance on the training and test sets.
@@ -143,28 +129,22 @@ def evaluation(model_path, X_train, y_train, X_test, y_test):
     model = tf.keras.models.load_model(model_path)
     print(f"\nModel loaded from {model_path}")
 
-    # Recompile the model to rebuild metrics
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    # Evaluate on training set
     print("\nEvaluating on Training Set:")
     train_loss, train_accuracy = model.evaluate(X_train, y_train, verbose=0)
     print(f"Training Accuracy: {train_accuracy * 100:.2f}%")
 
-    # Evaluate on test set
     print("\nEvaluating on Test Set:")
     test_loss, test_accuracy = model.evaluate(X_test, y_test, verbose=0)
     print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 
-    # Predictions on test set
     y_pred = model.predict(X_test)
     y_pred_classes = np.argmax(y_pred, axis=1)
 
-    # Classification Report
     print("\nClassification Report (Test Set):")
     print(classification_report(y_test, y_pred_classes))
 
-# Step 5: Plot Training History
 def plot_history(history, optimizer_name, title=''):
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
@@ -186,17 +166,7 @@ def plot_history(history, optimizer_name, title=''):
     plt.tight_layout()
     plt.show()
 
-# Step 6: Classify New Images
-def classify_images(model_path, image_folder, image_names, label_mapping):
-    """
-    Classify a set of images using the trained model.
-
-    Parameters:
-    - model_path: Path to the saved model.
-    - image_folder: Folder containing the images to classify.
-    - image_names: List of image filenames.
-    - label_mapping: Dictionary mapping integer labels to species names.
-    """
+def classify_images(model_path, test_images_folder, test_images, label_mapping):
     model = tf.keras.models.load_model(model_path)
     print(f"\nModel loaded from {model_path}")
 
@@ -204,18 +174,18 @@ def classify_images(model_path, image_folder, image_names, label_mapping):
         img = cv2.imread(img_path)
         if img is not None:
             img = cv2.resize(img, target_size)
-            img = img / 255.0  # Normalize
+            img = img / 255.0
             return img
         return None
 
     images = []
     valid_image_names = []
-    for name in image_names:
-        img_path = os.path.join(image_folder, name)
+    for name in test_images:
+        img_path = os.path.join(test_images_folder, name)
         img = preprocess_image(img_path)
         if img is not None:
             images.append(img)
-            valid_image_names.append(name)  # Track only valid images
+            valid_image_names.append(name)
         else:
             print(f"Warning: Could not load image {name}. Skipping.")
 
@@ -231,16 +201,12 @@ def classify_images(model_path, image_folder, image_names, label_mapping):
         print(f"Image: {name} -> Predicted Label: {label_mapping[predicted_classes[i]]}")
 
 
-# Step 7: Run the Full Pipeline
 if __name__ == "__main__":
-    # Load and preprocess the data
     X_train, X_test, y_train, y_test, num_classes, label_mapping = load_and_preprocess_data()
 
-    # Display some sample images from the training set
     print("\nDisplaying sample images from the training set...")
     display_sample_images(X_train, y_train, label_mapping, num_samples=5)
 
-    # Train the model with L2 Regularization
     history, model, optimizer_name = training(
         X_train, y_train, X_test, y_test,
         batch_size=32, num_layers=3, dropout_rate=0.5, 
@@ -248,14 +214,12 @@ if __name__ == "__main__":
         initial_lr=0.001, lr_scheduler=None, epochs=20
     )
 
-    # Plot training history
     plot_history(history, optimizer_name, title='(with L2 Regularization)')
 
-    # Evaluate the model
     evaluation('leaf_classification_cnn_model.keras', X_train, y_train, X_test, y_test)
 
-    # Classify new images
     print("\nClassifying new images...")
-    new_image_folder = 'test_images'  # Replace with your test image folder
-    new_image_names = ['1.jpg', '2.jpg', '3.jpg','40.jpg']  # Replace with your test image filenames
-    classify_images('leaf_classification_cnn_model.keras', new_image_folder, new_image_names, label_mapping)
+
+    test_images_folder = 'test_images'
+    test_images = ['1.jpg', '2.jpg', '3.jpg','40.jpg']
+    classify_images('leaf_classification_cnn_model.keras', test_images_folder, test_images, label_mapping)

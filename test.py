@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import StratifiedShuffleSplit
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Activation, Flatten, Dropout, Conv1D
+from tensorflow.keras.layers import Dense, Flatten, Dropout, Conv1D
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.utils import to_categorical
 
